@@ -73,47 +73,80 @@ GET /api/24hour
 
 POST /api/aquarium
 {
-  "lowerThreshold": 10.5,
-  "upperThreshold": 30.0,
-  "parameter": "temperature"
+    "parameters": [
+        {
+            "name": "temperature",
+            "lowerThreshold": 18.0,
+            "upperThreshold": 28.0
+        },
+        {
+            "name": "ph",
+            "lowerThreshold": 6.5,
+            "upperThreshold": 8.5
+        }
+    ]
 }
+
 
 GET /api/aquarium
 [{
-    "id": 1,
-    "lowerThreshold": 10.5,
-    "upperThreshold": 30.0,
-    "parameter": "temperature"
-}, {
     "id": 2,
-    "lowerThreshold": 12.5,
-    "upperThreshold": 30.0,
-    "parameter": "ph"
+    "parameters": []
+}, {
+    "id": 1,
+    "parameters": []
+}, {
+    "id": 3,
+    "parameters": [{
+        "name": "temperature",
+        "lowerThreshold": 18.0,
+        "upperThreshold": 28.0
+    }, {
+        "name": "ph",
+        "lowerThreshold": 6.5,
+        "upperThreshold": 8.5
+    }]
 }]
 
 GET /api/aquarium/{id}
 {
-    "id": 1,
-    "lowerThreshold": 777.0,
-    "upperThreshold": 777.0,
-    "parameter": "temperature"
+    "id": 3,
+    "parameters": [{
+        "name": "temperature",
+        "lowerThreshold": 18.0,
+        "upperThreshold": 28.0
+    }, {
+        "name": "ph",
+        "lowerThreshold": 6.5,
+        "upperThreshold": 8.5
+    }]
 }
 
 PUT /api/aquarium/{id}/update
 {
-  "lowerThreshold": 777.0,
-  "upperThreshold": 777.0,
-  "parameter": "ph"
+    "parameters": [
+        {
+            "name": "temperature",
+            "lowerThreshold": 20.0,
+            "upperThreshold": 30.0
+        },
+        {
+            "name": "salinity",
+            "lowerThreshold": 5.0,
+            "upperThreshold": 10.0
+        }
+    ]
 }
+
 
 POST /api/aqua-start-monitoring
 {
-  "aquariumId": 1
+  "aquariumId": 3
 }
 
 POST /api/aqua-stop-monitoring
 {
-  "aquariumId": 1
+  "aquariumId": 3
 }
 
 *******************************************
