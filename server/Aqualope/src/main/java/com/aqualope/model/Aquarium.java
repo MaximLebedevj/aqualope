@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
@@ -15,13 +17,21 @@ public class Aquarium {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double lowerThreshold = 0.0;
-    private Double upperThreshold = 100.0;
-    private String parameter;
+    @ElementCollection(fetch = FetchType.EAGER) // lazy envelope
+    @CollectionTable(name = "aquarium_parameters", joinColumns = @JoinColumn(name = "aquarium_id"))
+    private List<Parameter> parameters = new ArrayList<>();
 
-    public Aquarium(Double lowerThreshold, Double upperThreshold, String parameter) {
-        this.lowerThreshold = lowerThreshold;
-        this.upperThreshold = upperThreshold;
-        this.parameter = parameter;
+    @Embeddable
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Parameter {
+        private String name;
+        private Double lowerThreshold = 0.0;
+        private Double upperThreshold = 100.0;
+    }
+
+    public Aquarium(List<Parameter> parameters) {
+        this.parameters = parameters;
     }
 }

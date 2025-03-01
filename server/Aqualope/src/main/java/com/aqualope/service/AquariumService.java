@@ -5,6 +5,7 @@ import com.aqualope.repository.AquariumRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,8 +15,8 @@ public class AquariumService {
     @Autowired
     private AquariumRepository aquariumRepository;
 
-    public Aquarium createAquarium(Double lowerThreshold, Double upperThreshold, String parameter) {
-        Aquarium aquarium = new Aquarium(lowerThreshold, upperThreshold, parameter);
+    public Aquarium createAquarium(List<Aquarium.Parameter> parameters) {
+        Aquarium aquarium = new Aquarium(parameters);
         return aquariumRepository.save(aquarium);
     }
 
@@ -27,22 +28,15 @@ public class AquariumService {
         return aquariumRepository.findById(id);
     }
 
-    public Aquarium updateThresholds(Long id, Double lowerThreshold, Double upperThreshold, String parameter) {
+    public Aquarium updateParameters(Long id, List<Aquarium.Parameter> parameters) {
         Optional<Aquarium> aquariumOpt = aquariumRepository.findById(id);
 
         if (aquariumOpt.isPresent()) {
             Aquarium aquarium = aquariumOpt.get();
-            aquarium.setLowerThreshold(lowerThreshold);
-            aquarium.setUpperThreshold(upperThreshold);
-
-            if (parameter != null && !parameter.isEmpty()) {
-                aquarium.setParameter(parameter);
-            }
-
+            aquarium.setParameters(parameters);
             return aquariumRepository.save(aquarium);
         }
 
         throw new RuntimeException("Aquarium not found with id: " + id);
     }
-
 }

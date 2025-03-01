@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -130,21 +131,24 @@ public class MqttServiceImpl {
                 Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(currentAquariumId);
                 if (aquariumOpt.isPresent()) {
                     Aquarium aquarium = aquariumOpt.get();
-                    String parameter = aquarium.getParameter();
+                    List<Aquarium.Parameter> parameters = aquarium.getParameters();
 
-                    Double parameterValue = getParameterValue(data, parameter);
+                    for (Aquarium.Parameter parameter : parameters) {
+                        String paramName = parameter.getName();
+                        Double parameterValue = getParameterValue(data, paramName);
 
-                    if (parameterValue != null) {
-                        Map<String, Object> parameterData = new HashMap<>();
-                        parameterData.put("aquariumId", aquarium.getId());
-                        parameterData.put("parameter", parameter);
-                        parameterData.put("value", parameterValue);
-                        parameterData.put("lowerThreshold", aquarium.getLowerThreshold());
-                        parameterData.put("upperThreshold", aquarium.getUpperThreshold());
-                        parameterData.put("timestamp", data.getTimestamp());
+                        if (parameterValue != null) {
+                            Map<String, Object> parameterData = new HashMap<>();
+                            parameterData.put("aquariumId", aquarium.getId());
+                            parameterData.put("parameter", paramName);
+                            parameterData.put("value", parameterValue);
+                            parameterData.put("lowerThreshold", parameter.getLowerThreshold());
+                            parameterData.put("upperThreshold", parameter.getUpperThreshold());
+                            parameterData.put("timestamp", data.getTimestamp());
 
-                        simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
-                        log.info("Parameter data sent to WebSocket clients: {}", parameterData);
+                            simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
+                            log.info("Parameter data sent to WebSocket clients: {}", parameterData);
+                        }
                     }
                 }
             }
@@ -156,8 +160,10 @@ public class MqttServiceImpl {
     private Double getParameterValue(WaterQuality data, String parameter) {
         switch (parameter.toLowerCase()) {
             case "temperature":
+            case "temp":
                 return data.getTemperature();
             case "oxygensaturation":
+            case "oxygen":
                 return data.getOxygenSaturation();
             case "ph":
                 return data.getPH();
@@ -166,6 +172,7 @@ public class MqttServiceImpl {
             case "salinity":
                 return data.getSalinity();
             case "waterlevel":
+            case "level":
                 return data.getWaterLevel();
             case "turbidity":
                 return data.getTurbidity();
@@ -223,6 +230,11 @@ public class MqttServiceImpl {
                 throw new RuntimeException("Aquarium not found with id: " + aquariumId);
             }
 
+            Aquarium aquarium = aquariumOpt.get();
+            if (aquarium.getParameters() == null || aquarium.getParameters().isEmpty()) {
+                throw new RuntimeException("Aquarium has no parameters configured");
+            }
+
             currentAquariumId = aquariumId;
 
             if (!isMonitoring.get() && !isAquaMonitoring.get()) {
@@ -230,8 +242,8 @@ public class MqttServiceImpl {
             }
 
             isAquaMonitoring.set(true);
-            log.info("Started aquarium monitoring for aquarium id: {} with parameter: {}",
-                    aquariumId, aquariumOpt.get().getParameter());
+            log.info("Started aquarium monitoring for aquarium id: {} with parameters: {}",
+                    aquariumId, aquarium.getParameters());
         } catch (MqttException e) {
             log.error("Failed to start aquarium monitoring: {}", e.getMessage());
             throw new RuntimeException("Failed to start aquarium monitoring", e);
@@ -278,6 +290,30 @@ public class MqttServiceImpl {
 
             waterQualityServiceImpl.save(testData);
             log.info("Test data saved to database");
+
+            if (isAquaMonitoring.get() && currentAquariumId != null) {
+                Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(currentAquariumId);
+                if (aquariumOpt.isPresent()) {
+                    Aquarium aquarium = aquariumOpt.get();
+                    for (Aquarium.Parameter parameter : aquarium.getParameters()) {
+                        String paramName = parameter.getName();
+                        Double parameterValue = getParameterValue(testData, paramName);
+
+                        if (parameterValue != null) {
+                            Map<String, Object> parameterData = new HashMap<>();
+                            parameterData.put("aquariumId", aquarium.getId());
+                            parameterData.put("parameter", paramName);
+                            parameterData.put("value", parameterValue);
+                            parameterData.put("lowerThreshold", parameter.getLowerThreshold());
+                            parameterData.put("upperThreshold", parameter.getUpperThreshold());
+                            parameterData.put("timestamp", testData.getTimestamp());
+
+                            simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
+                            log.info("Test parameter data sent to WebSocket clients: {}", parameterData);
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
             log.error("Failed to send test message: {}", e.getMessage(), e);
         }

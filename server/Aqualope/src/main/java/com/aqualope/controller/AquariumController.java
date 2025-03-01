@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/aquarium")
@@ -23,17 +24,28 @@ public class AquariumController {
     public ResponseEntity<Aquarium> createAquarium(@RequestBody Map<String, Object> request) {
         log.info("Received request to create aquarium: {}", request);
 
-        Double lowerThreshold = request.containsKey("lowerThreshold") ?
-                Double.parseDouble(request.get("lowerThreshold").toString()) : 0.0;
-        Double upperThreshold = request.containsKey("upperThreshold") ?
-                Double.parseDouble(request.get("upperThreshold").toString()) : 100.0;
-        String parameter = (String) request.get("parameter");
-
-        if (parameter == null || parameter.isEmpty()) {
+        List<Map<String, Object>> parametersData = (List<Map<String, Object>>) request.get("parameters");
+        if (parametersData == null || parametersData.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
-        Aquarium aquarium = aquariumService.createAquarium(lowerThreshold, upperThreshold, parameter);
+        List<Aquarium.Parameter> parameters = new ArrayList<>();
+
+        for (Map<String, Object> paramData : parametersData) {
+            String name = (String) paramData.get("name");
+            Double lowerThreshold = paramData.containsKey("lowerThreshold") ?
+                    Double.parseDouble(paramData.get("lowerThreshold").toString()) : 0.0;
+            Double upperThreshold = paramData.containsKey("upperThreshold") ?
+                    Double.parseDouble(paramData.get("upperThreshold").toString()) : 100.0;
+
+            if (name == null || name.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            parameters.add(new Aquarium.Parameter(name, lowerThreshold, upperThreshold));
+        }
+
+        Aquarium aquarium = aquariumService.createAquarium(parameters);
         return ResponseEntity.ok(aquarium);
     }
 
@@ -58,23 +70,33 @@ public class AquariumController {
             @RequestBody Map<String, Object> request) {
         log.info("Received request to update aquarium with id: {}", id);
 
-        Double lowerThreshold = request.containsKey("lowerThreshold")
-                ? Double.parseDouble(request.get("lowerThreshold").toString())
-                : 0.0;
-        Double upperThreshold = request.containsKey("upperThreshold")
-                ? Double.parseDouble(request.get("upperThreshold").toString())
-                : 100.0;
-        String parameter = request.containsKey("parameter")
-                ? request.get("parameter").toString()
-                : null;
+        List<Map<String, Object>> parametersData = (List<Map<String, Object>>) request.get("parameters");
+        if (parametersData == null || parametersData.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<Aquarium.Parameter> parameters = new ArrayList<>();
+
+        for (Map<String, Object> paramData : parametersData) {
+            String name = (String) paramData.get("name");
+            Double lowerThreshold = paramData.containsKey("lowerThreshold") ?
+                    Double.parseDouble(paramData.get("lowerThreshold").toString()) : 0.0;
+            Double upperThreshold = paramData.containsKey("upperThreshold") ?
+                    Double.parseDouble(paramData.get("upperThreshold").toString()) : 100.0;
+
+            if (name == null || name.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            parameters.add(new Aquarium.Parameter(name, lowerThreshold, upperThreshold));
+        }
 
         try {
-            Aquarium aquarium = aquariumService.updateThresholds(id, lowerThreshold, upperThreshold, parameter);
+            Aquarium aquarium = aquariumService.updateParameters(id, parameters);
             return ResponseEntity.ok(aquarium);
         } catch (RuntimeException e) {
             log.error("Failed to update aquarium: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
-
 }
