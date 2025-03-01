@@ -48,6 +48,9 @@ public class MqttServiceImpl {
     @Autowired
     private AquariumService aquariumService;
 
+    @Autowired
+    private TelegramNotificationService telegramService;
+
     @PostConstruct
     public void init() throws MqttException {
         mqttClient = new MqttClient(broker, clientId);
@@ -138,13 +141,30 @@ public class MqttServiceImpl {
                         Double parameterValue = getParameterValue(data, paramName);
 
                         if (parameterValue != null) {
+                            Double lowerThreshold = parameter.getLowerThreshold();
+                            Double upperThreshold = parameter.getUpperThreshold();
+
+                            if (parameterValue < lowerThreshold || parameterValue > upperThreshold) {
+                                log.warn("Parameter {} value {} is outside acceptable range [{} - {}]",
+                                        paramName, parameterValue, lowerThreshold, upperThreshold);
+
+                                telegramService.sendAlert(
+                                        aquarium.getId(),
+                                        paramName,
+                                        parameterValue,
+                                        lowerThreshold,
+                                        upperThreshold
+                                );
+                            }
+
                             Map<String, Object> parameterData = new HashMap<>();
                             parameterData.put("aquariumId", aquarium.getId());
                             parameterData.put("parameter", paramName);
                             parameterData.put("value", parameterValue);
-                            parameterData.put("lowerThreshold", parameter.getLowerThreshold());
-                            parameterData.put("upperThreshold", parameter.getUpperThreshold());
+                            parameterData.put("lowerThreshold", lowerThreshold);
+                            parameterData.put("upperThreshold", upperThreshold);
                             parameterData.put("timestamp", data.getTimestamp());
+                            parameterData.put("isAlert", parameterValue < lowerThreshold || parameterValue > upperThreshold);
 
                             simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
                             log.info("Parameter data sent to WebSocket clients: {}", parameterData);
@@ -156,7 +176,7 @@ public class MqttServiceImpl {
             log.error("Error processing data: {}", e.getMessage(), e);
         }
     }
-
+    
     private Double getParameterValue(WaterQuality data, String parameter) {
         switch (parameter.toLowerCase()) {
             case "temperature":
