@@ -33,6 +33,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/register", "/login").permitAll()
+                        .requestMatchers("api/status").permitAll()
+                        .requestMatchers("api/start-monitoring").permitAll()
+                        .requestMatchers("api/stop-monitoring").permitAll()
+                        .requestMatchers("api/24hour").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .anyRequest().authenticated()
                 )
