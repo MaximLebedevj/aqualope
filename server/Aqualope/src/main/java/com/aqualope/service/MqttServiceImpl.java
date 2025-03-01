@@ -1,5 +1,6 @@
 package com.aqualope.service;
 
+import com.aqualope.model.Aquarium;
 import com.aqualope.model.WaterQuality;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.time.LocalDateTime;
 
@@ -31,12 +35,17 @@ public class MqttServiceImpl {
     private MqttClient mqttClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AtomicBoolean isMonitoring = new AtomicBoolean(false);
+    private final AtomicBoolean isAquaMonitoring = new AtomicBoolean(false);
+    private Long currentAquariumId;
 
     @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
 
     @Autowired
     private WaterQualityServiceImpl waterQualityServiceImpl;
+
+    @Autowired
+    private AquariumService aquariumService;
 
     @PostConstruct
     public void init() throws MqttException {
@@ -60,7 +69,7 @@ public class MqttServiceImpl {
                 try {
                     if (!mqttClient.isConnected()) {
                         mqttClient.connect(options);
-                        if(isMonitoring.get()) {
+                        if(isMonitoring.get() || isAquaMonitoring.get()) {
                             mqttClient.subscribe(topic);
                         }
                     }
@@ -71,50 +80,103 @@ public class MqttServiceImpl {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                if (isMonitoring.get()) {
-                    log.info("Received message: {}", message);
-                    String payload = new String(message.getPayload());
-
-                    try {
-                        JsonNode jsonNode = objectMapper.readTree(payload);
-
-                        WaterQuality data = new WaterQuality(
-                                getDoubleValue(jsonNode, "temperature"),
-                                getDoubleValue(jsonNode, "oxygen_saturation"),
-                                getDoubleValue(jsonNode, "pH"),
-                                getDoubleValue(jsonNode, "orp"),
-                                getDoubleValue(jsonNode, "salinity"),
-                                getDoubleValue(jsonNode, "water_level"),
-                                getDoubleValue(jsonNode, "turbidity"),
-                                getDoubleValue(jsonNode, "ammonia"),
-                                getDoubleValue(jsonNode, "nitrites"),
-                                LocalDateTime.now()
-                        );
-
-                        log.info("Parsed data: {}", data);
-
-                        try {
-                            simpMessagingTemplate.convertAndSend("/topic/water-quality", data);
-                            log.info("Data sent to WebSocket clients");
-                        } catch (Exception e) {
-                            log.error("Failed to send data via WebSocket: {}", e.getMessage(), e);
-                        }
-
-                        try {
-                            waterQualityServiceImpl.save(data);
-                            log.info("Data saved to database");
-                        } catch (Exception e) {
-                            log.error("Failed to save data to database: {}", e.getMessage(), e);
-                        }
-                    } catch (Exception e) {
-                        log.error("Error processing data: {}", e.getMessage());
-                    }
-                }
+                handleMessage(message);
             }
 
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {}
         });
+    }
+
+    private void handleMessage(MqttMessage message) {
+        try {
+            String payload = new String(message.getPayload());
+            log.info("Received message: {}", payload);
+
+            JsonNode jsonNode = objectMapper.readTree(payload);
+
+            WaterQuality data = new WaterQuality(
+                    getDoubleValue(jsonNode, "temperature"),
+                    getDoubleValue(jsonNode, "oxygen_saturation"),
+                    getDoubleValue(jsonNode, "pH"),
+                    getDoubleValue(jsonNode, "orp"),
+                    getDoubleValue(jsonNode, "salinity"),
+                    getDoubleValue(jsonNode, "water_level"),
+                    getDoubleValue(jsonNode, "turbidity"),
+                    getDoubleValue(jsonNode, "ammonia"),
+                    getDoubleValue(jsonNode, "nitrites"),
+                    LocalDateTime.now()
+            );
+
+            log.info("Parsed data: {}", data);
+
+            if (isMonitoring.get() || isAquaMonitoring.get()) {
+                try {
+                    simpMessagingTemplate.convertAndSend("/topic/water-quality", data);
+                    log.info("Data sent to WebSocket clients");
+                } catch (Exception e) {
+                    log.error("Failed to send data via WebSocket: {}", e.getMessage(), e);
+                }
+
+                try {
+                    waterQualityServiceImpl.save(data);
+                    log.info("Data saved to database");
+                } catch (Exception e) {
+                    log.error("Failed to save data to database: {}", e.getMessage(), e);
+                }
+            }
+
+            if (isAquaMonitoring.get() && currentAquariumId != null) {
+                Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(currentAquariumId);
+                if (aquariumOpt.isPresent()) {
+                    Aquarium aquarium = aquariumOpt.get();
+                    String parameter = aquarium.getParameter();
+
+                    Double parameterValue = getParameterValue(data, parameter);
+
+                    if (parameterValue != null) {
+                        Map<String, Object> parameterData = new HashMap<>();
+                        parameterData.put("aquariumId", aquarium.getId());
+                        parameterData.put("parameter", parameter);
+                        parameterData.put("value", parameterValue);
+                        parameterData.put("lowerThreshold", aquarium.getLowerThreshold());
+                        parameterData.put("upperThreshold", aquarium.getUpperThreshold());
+                        parameterData.put("timestamp", data.getTimestamp());
+
+                        simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
+                        log.info("Parameter data sent to WebSocket clients: {}", parameterData);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing data: {}", e.getMessage(), e);
+        }
+    }
+
+    private Double getParameterValue(WaterQuality data, String parameter) {
+        switch (parameter.toLowerCase()) {
+            case "temperature":
+                return data.getTemperature();
+            case "oxygensaturation":
+                return data.getOxygenSaturation();
+            case "ph":
+                return data.getPH();
+            case "orp":
+                return data.getOrp();
+            case "salinity":
+                return data.getSalinity();
+            case "waterlevel":
+                return data.getWaterLevel();
+            case "turbidity":
+                return data.getTurbidity();
+            case "ammonia":
+                return data.getAmmonia();
+            case "nitrites":
+                return data.getNitrites();
+            default:
+                log.warn("Unknown parameter: {}", parameter);
+                return null;
+        }
     }
 
     private Double getDoubleValue(JsonNode node, String field) {
@@ -140,11 +202,55 @@ public class MqttServiceImpl {
     public void stopMonitoring() {
         try {
             isMonitoring.set(false);
-            mqttClient.unsubscribe(topic);
-            log.info("Stopped monitoring");
+            if (!isAquaMonitoring.get()) {
+                mqttClient.unsubscribe(topic);
+            }
+            log.info("Stopped regular monitoring");
         } catch (MqttException e) {
             log.error("Failed to stop monitoring: {}", e.getMessage());
             throw new RuntimeException("Failed to stop monitoring", e);
+        }
+    }
+
+    public void startAquaMonitoring(Long aquariumId) {
+        try {
+            if (!mqttClient.isConnected()) {
+                connect();
+            }
+
+            Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(aquariumId);
+            if (!aquariumOpt.isPresent()) {
+                throw new RuntimeException("Aquarium not found with id: " + aquariumId);
+            }
+
+            currentAquariumId = aquariumId;
+
+            if (!isMonitoring.get() && !isAquaMonitoring.get()) {
+                mqttClient.subscribe(topic);
+            }
+
+            isAquaMonitoring.set(true);
+            log.info("Started aquarium monitoring for aquarium id: {} with parameter: {}",
+                    aquariumId, aquariumOpt.get().getParameter());
+        } catch (MqttException e) {
+            log.error("Failed to start aquarium monitoring: {}", e.getMessage());
+            throw new RuntimeException("Failed to start aquarium monitoring", e);
+        }
+    }
+
+    public void stopAquaMonitoring() {
+        try {
+            isAquaMonitoring.set(false);
+            currentAquariumId = null;
+
+            if (!isMonitoring.get()) {
+                mqttClient.unsubscribe(topic);
+            }
+
+            log.info("Stopped aquarium monitoring");
+        } catch (MqttException e) {
+            log.error("Failed to stop aquarium monitoring: {}", e.getMessage());
+            throw new RuntimeException("Failed to stop aquarium monitoring", e);
         }
     }
 
@@ -176,5 +282,4 @@ public class MqttServiceImpl {
             log.error("Failed to send test message: {}", e.getMessage(), e);
         }
     }
-
 }
