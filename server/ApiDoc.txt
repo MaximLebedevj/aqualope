@@ -5,11 +5,18 @@ http://127.0.0.1:8080/login
 http://127.0.0.1:8080/register
 http://127.0.0.1:8080/user/info
 
-/api
-http://127.0.0.1:8080/api/start-monitoring
-http://127.0.0.1:8080/api/stop-monitoring
-http://127.0.0.1:8080/api/status
-http://127.0.0.1:8080/api/24hour
+
+POST     http://127.0.0.1:8080/api/start-monitoring
+POST     http://127.0.0.1:8080/api/stop-monitoring
+GET      http://127.0.0.1:8080/api/status
+GET      http://127.0.0.1:8080/api/24hour
+
+POST/GET http://127.0.0.1:8080/api/aquarium
+GET      http://127.0.0.1:8080/api/aquarium/{id}
+PUT      http://127.0.0.1:8080/api/aquarium/{id}/update
+
+POST     http://localhost:8080/api/aqua-start-monitoring
+POST     http://localhost:8080/api/aqua-stop-monitoring
 
 *******************************************
 
@@ -63,6 +70,51 @@ GET /api/24hour
     "timestamp": "2025-03-01T14:39:34.553851",
     "ph": 7.12
 }]
+
+POST /api/aquarium
+{
+  "lowerThreshold": 10.5,
+  "upperThreshold": 30.0,
+  "parameter": "temperature"
+}
+
+GET /api/aquarium
+[{
+    "id": 1,
+    "lowerThreshold": 10.5,
+    "upperThreshold": 30.0,
+    "parameter": "temperature"
+}, {
+    "id": 2,
+    "lowerThreshold": 12.5,
+    "upperThreshold": 30.0,
+    "parameter": "ph"
+}]
+
+GET /api/aquarium/{id}
+{
+    "id": 1,
+    "lowerThreshold": 777.0,
+    "upperThreshold": 777.0,
+    "parameter": "temperature"
+}
+
+PUT /api/aquarium/{id}/update
+{
+  "lowerThreshold": 777.0,
+  "upperThreshold": 777.0,
+  "parameter": "ph"
+}
+
+POST /api/aqua-start-monitoring
+{
+  "aquariumId": 1
+}
+
+POST /api/aqua-stop-monitoring
+{
+  "aquariumId": 1
+}
 
 *******************************************
 
