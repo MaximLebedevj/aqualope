@@ -12,16 +12,20 @@
   </template>
   
   <script>
+  import { defineComponent } from 'vue';
   import { onMounted, ref } from "vue";
   import { Chart, registerables } from "chart.js";
   
   Chart.register(...registerables);
   
-  export default {
+  export default defineComponent({
     name: "ChartComponent",
     setup() {
       const lineChart = ref(null);
-  
+      const graphData = ref([65, 59, 80, 81, 56, 55, 40])
+      const leftEdge = ref(0)
+      const rightEdge = ref(graphData.value.length)
+
       onMounted(() => {
         const ctx = lineChart.value.getContext("2d");
         new Chart(ctx, {
@@ -30,7 +34,7 @@
             labels: Array.from(Array(7).keys()),
             datasets: [{
               label: "data",
-              data: [65, 59, 80, 81, 56, 55, 40],
+              data: graphData.value,
               borderColor: "rgba(75, 192, 192, 1)",
               backgroundColor: "rgba(75, 192, 192, 0.0)",
               fill: true
@@ -72,7 +76,7 @@
   
       return { lineChart };
     }
-  };
+  });
   </script>
   
   <style scoped>
