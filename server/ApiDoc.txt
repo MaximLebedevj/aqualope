@@ -1,0 +1,71 @@
+
+*******************************************
+
+http://127.0.0.1:8080/login
+http://127.0.0.1:8080/register
+http://127.0.0.1:8080/user/info
+
+/api
+http://127.0.0.1:8080/api/start-monitoring
+http://127.0.0.1:8080/api/stop-monitoring
+http://127.0.0.1:8080/api/status
+http://127.0.0.1:8080/api/24hour
+
+*******************************************
+
+POST /register
+{
+  "username": "test",
+  "password": "test"
+}
+
+POST /login
+{
+  "username": "test",
+  "password": "test"
+}
+
+GET /user/info
+{
+  "username": "exampleUser"
+}
+
+POST /api/start-monitoring
+
+POST /api/stop-monitoring
+
+GET /api/status
+System is running. Database has 132 records from the last 24 hours.
+
+GET /api/24hour
+[{
+    "id": 139,
+    "temperature": 20.32,
+    "oxygenSaturation": 91.34,
+    "orp": 214.34,
+    "salinity": 0.71,
+    "waterLevel": 89.06,
+    "turbidity": 48.23,
+    "ammonia": 3.21,
+    "nitrites": 0.86,
+    "timestamp": "2025-03-01T14:39:39.569421",
+    "ph": 7.89
+}, {
+    "id": 138,
+    "temperature": 27.51,
+    "oxygenSaturation": 94.95,
+    "orp": 362.56,
+    "salinity": 1.47,
+    "waterLevel": 56.4,
+    "turbidity": 10.02,
+    "ammonia": 2.94,
+    "nitrites": 0.79,
+    "timestamp": "2025-03-01T14:39:34.553851",
+    "ph": 7.12
+}]
+
+*******************************************
+
+
+
+
