@@ -17,7 +17,10 @@ public class Aquarium {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ElementCollection(fetch = FetchType.EAGER) // lazy envelope
+    @Column(nullable = false)
+    private String name;
+
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "aquarium_parameters", joinColumns = @JoinColumn(name = "aquarium_id"))
     private List<Parameter> parameters = new ArrayList<>();
 
@@ -31,7 +34,8 @@ public class Aquarium {
         private Double upperThreshold = 100.0;
     }
 
-    public Aquarium(List<Parameter> parameters) {
+    public Aquarium(String name, List<Parameter> parameters) {
+        this.name = name;
         this.parameters = parameters;
     }
 }

@@ -5,7 +5,6 @@ import com.aqualope.repository.AquariumRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-
 import java.util.List;
 import java.util.Optional;
 
@@ -15,8 +14,8 @@ public class AquariumService {
     @Autowired
     private AquariumRepository aquariumRepository;
 
-    public Aquarium createAquarium(List<Aquarium.Parameter> parameters) {
-        Aquarium aquarium = new Aquarium(parameters);
+    public Aquarium createAquarium(String name, List<Aquarium.Parameter> parameters) {
+        Aquarium aquarium = new Aquarium(name, parameters);
         return aquariumRepository.save(aquarium);
     }
 
@@ -28,11 +27,12 @@ public class AquariumService {
         return aquariumRepository.findById(id);
     }
 
-    public Aquarium updateParameters(Long id, List<Aquarium.Parameter> parameters) {
+    public Aquarium updateParameters(Long id, String name, List<Aquarium.Parameter> parameters) {
         Optional<Aquarium> aquariumOpt = aquariumRepository.findById(id);
 
         if (aquariumOpt.isPresent()) {
             Aquarium aquarium = aquariumOpt.get();
+            aquarium.setName(name);
             aquarium.setParameters(parameters);
             return aquariumRepository.save(aquarium);
         }
