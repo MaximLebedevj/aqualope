@@ -116,6 +116,10 @@ public class MqttServiceImpl {
 
             if (isMonitoring.get() || isAquaMonitoring.get()) {
                 try {
+
+                    WaterQuality savedData = waterQualityServiceImpl.save(data);
+                    data.setId(savedData.getId());
+
                     simpMessagingTemplate.convertAndSend("/topic/water-quality", data);
                     log.info("Data sent to WebSocket clients");
                 } catch (Exception e) {

@@ -15,8 +15,8 @@ public class WaterQualityServiceImpl {
     @Autowired
     private WaterQualityRepository waterQualityRepository;
 
-    public void save(WaterQuality waterQuality) {
-        waterQualityRepository.save(waterQuality);
+    public WaterQuality save(WaterQuality waterQuality) {
+        return waterQualityRepository.save(waterQuality);
     }
 
     public List<WaterQuality> getLast24Hours() {
