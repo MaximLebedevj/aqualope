@@ -96,6 +96,7 @@ public class AquariumController {
 
     @GetMapping("/{id}/params")
     public ResponseEntity<List<String>> getAquariumParameters(@PathVariable Long id) {
+        
         log.info("Received request to get parameters for aquarium with id: {}", id);
 
         Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(id);
