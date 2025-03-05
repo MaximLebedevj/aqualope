@@ -10,10 +10,12 @@ POST     http://127.0.0.1:8080/api/start-monitoring
 POST     http://127.0.0.1:8080/api/stop-monitoring
 GET      http://127.0.0.1:8080/api/status
 GET      http://127.0.0.1:8080/api/24hour
+GET      http://127.0.0.1:8080/api/{id}/water-quality
 
 POST/GET http://127.0.0.1:8080/api/aquarium
 GET      http://127.0.0.1:8080/api/aquarium/{id}
 PUT      http://127.0.0.1:8080/api/aquarium/{id}/update
+GET      http://127.0.0.1:8080/api/aquarium/{id}/params
 
 POST     http://localhost:8080/api/aqua-start-monitoring
 POST     http://localhost:8080/api/aqua-stop-monitoring
@@ -73,13 +75,49 @@ GET /api/24hour
 
 POST /api/aquarium
 {
+    "name": "Осетр (взрослые)",
     "parameters": [
         {
             "name": "temperature",
-            "lowerThreshold": 18.0,
-            "upperThreshold": 28.0
+            "lowerThreshold": 16.0,
+            "upperThreshold": 20.0
         },
         {
+            "name": "oxygenSaturation",
+            "lowerThreshold": 5.0,
+            "upperThreshold": 12.0
+        },
+{
+            "name": "orp",
+            "lowerThreshold": 150.0,
+            "upperThreshold": 350.0
+        },
+{
+            "name": "salinity",
+            "lowerThreshold": 0.0,
+            "upperThreshold": 10.0
+        },
+{
+            "name": "waterLevel",
+            "lowerThreshold": 1.5,
+            "upperThreshold": 3.0
+        },
+{
+            "name": "turbidity",
+            "lowerThreshold": 0.0,
+            "upperThreshold": 50.0
+        },
+{
+            "name": "ammonia",
+            "lowerThreshold": 0.0,
+            "upperThreshold": 0.2
+        },
+{
+            "name": "nitrites",
+            "lowerThreshold": 0.0,
+            "upperThreshold": 0.3
+        },
+{
             "name": "ph",
             "lowerThreshold": 6.5,
             "upperThreshold": 8.5
@@ -90,31 +128,163 @@ POST /api/aquarium
 
 GET /api/aquarium
 [{
-    "id": 2,
-    "parameters": []
-}, {
+    "name": "Осетр (взрослые)",
     "id": 1,
-    "parameters": []
-}, {
-    "id": 3,
     "parameters": [{
         "name": "temperature",
-        "lowerThreshold": 18.0,
-        "upperThreshold": 28.0
+        "lowerThreshold": 16.0,
+        "upperThreshold": 20.0
+    }, {
+        "name": "oxygenSaturation",
+        "lowerThreshold": 5.0,
+        "upperThreshold": 12.0
+    }, {
+        "name": "orp",
+        "lowerThreshold": 150.0,
+        "upperThreshold": 350.0
+    }, {
+        "name": "salinity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 10.0
+    }, {
+        "name": "waterLevel",
+        "lowerThreshold": 1.5,
+        "upperThreshold": 3.0
+    }, {
+        "name": "turbidity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 50.0
+    }, {
+        "name": "ammonia",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.2
+    }, {
+        "name": "nitrites",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.3
     }, {
         "name": "ph",
         "lowerThreshold": 6.5,
         "upperThreshold": 8.5
     }]
+}, {
+    "name": "Осетр (молодь)",
+    "id": 2,
+    "parameters": [{
+        "name": "temperature",
+        "lowerThreshold": 18.0,
+        "upperThreshold": 20.0
+    }, {
+        "name": "oxygenSaturation",
+        "lowerThreshold": 6.0,
+        "upperThreshold": 14.0
+    }, {
+        "name": "orp",
+        "lowerThreshold": 200.0,
+        "upperThreshold": 400.0
+    }, {
+        "name": "salinity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 10.0
+    }, {
+        "name": "waterLevel",
+        "lowerThreshold": 0.5,
+        "upperThreshold": 1.5
+    }, {
+        "name": "turbidity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 30.0
+    }, {
+        "name": "ammonia",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.1
+    }, {
+        "name": "nitrites",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.2
+    }, {
+        "name": "ph",
+        "lowerThreshold": 6.5,
+        "upperThreshold": 8.5
+    }]
+}, {
+    "name": "Радужная форель",
+    "id": 3,
+    "parameters": [{
+        "name": "temperature",
+        "lowerThreshold": 12.0,
+        "upperThreshold": 16.0
+    }, {
+        "name": "oxygenSaturation",
+        "lowerThreshold": 7.0,
+        "upperThreshold": 14.0
+    }, {
+        "name": "orp",
+        "lowerThreshold": 250.0,
+        "upperThreshold": 450.0
+    }, {
+        "name": "salinity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 5.0
+    }, {
+        "name": "waterLevel",
+        "lowerThreshold": 0.5,
+        "upperThreshold": 2.0
+    }, {
+        "name": "turbidity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 5.0
+    }, {
+        "name": "ammonia",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.02
+    }, {
+        "name": "nitrites",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.1
+    }, {
+        "name": "ph",
+        "lowerThreshold": 6.8,
+        "upperThreshold": 8.0
+    }]
 }]
 
 GET /api/aquarium/{id}
 {
-    "id": 3,
+    "name": "Осетр (взрослые)",
+    "id": 1,
     "parameters": [{
         "name": "temperature",
-        "lowerThreshold": 18.0,
-        "upperThreshold": 28.0
+        "lowerThreshold": 16.0,
+        "upperThreshold": 20.0
+    }, {
+        "name": "oxygenSaturation",
+        "lowerThreshold": 5.0,
+        "upperThreshold": 12.0
+    }, {
+        "name": "orp",
+        "lowerThreshold": 150.0,
+        "upperThreshold": 350.0
+    }, {
+        "name": "salinity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 10.0
+    }, {
+        "name": "waterLevel",
+        "lowerThreshold": 1.5,
+        "upperThreshold": 3.0
+    }, {
+        "name": "turbidity",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 50.0
+    }, {
+        "name": "ammonia",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.2
+    }, {
+        "name": "nitrites",
+        "lowerThreshold": 0.0,
+        "upperThreshold": 0.3
     }, {
         "name": "ph",
         "lowerThreshold": 6.5,
@@ -137,6 +307,9 @@ PUT /api/aquarium/{id}/update
         }
     ]
 }
+
+GET /api/{id}/params
+["temperature", "oxygenSaturation", "orp", "salinity", "waterLevel", "turbidity", "ammonia", "nitrites", "ph"]
 
 
 POST /api/aqua-start-monitoring
