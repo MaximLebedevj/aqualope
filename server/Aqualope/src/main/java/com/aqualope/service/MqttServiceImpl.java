@@ -33,6 +33,9 @@ public class MqttServiceImpl {
     @Value("${mqtt.topic}")
     private String topic;
 
+    @Value("${mqtt.topic.arduino:topic/arduino_control}")
+    private String arduinoTopic;
+
     private MqttClient mqttClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AtomicBoolean isMonitoring = new AtomicBoolean(false);
@@ -100,15 +103,15 @@ public class MqttServiceImpl {
             JsonNode jsonNode = objectMapper.readTree(payload);
 
             WaterQuality data = new WaterQuality(
-                    getDoubleValue(jsonNode, "temperature"),
-                    getDoubleValue(jsonNode, "oxygen_saturation"),
-                    getDoubleValue(jsonNode, "pH"),
-                    getDoubleValue(jsonNode, "orp"),
-                    getDoubleValue(jsonNode, "salinity"),
-                    getDoubleValue(jsonNode, "water_level"),
-                    getDoubleValue(jsonNode, "turbidity"),
-                    getDoubleValue(jsonNode, "ammonia"),
-                    getDoubleValue(jsonNode, "nitrites"),
+                    getDoubleValue(jsonNode, "te"),
+                    getDoubleValue(jsonNode, "ox"),
+                    getDoubleValue(jsonNode, "p"),
+                    getDoubleValue(jsonNode, "or"),
+                    getDoubleValue(jsonNode, "s"),
+                    getDoubleValue(jsonNode, "w"),
+                    getDoubleValue(jsonNode, "tu"),
+                    getDoubleValue(jsonNode, "a"),
+                    getDoubleValue(jsonNode, "n"),
                     LocalDateTime.now()
             );
 
@@ -180,7 +183,7 @@ public class MqttServiceImpl {
             log.error("Error processing data: {}", e.getMessage(), e);
         }
     }
-    
+
     private Double getParameterValue(WaterQuality data, String parameter) {
         switch (parameter.toLowerCase()) {
             case "temperature":
@@ -340,6 +343,68 @@ public class MqttServiceImpl {
             }
         } catch (Exception e) {
             log.error("Failed to send test message: {}", e.getMessage(), e);
+        }
+    }
+
+    public void sendLedCommand(boolean turnOn) throws Exception {
+        if (!isConnected()) {
+            log.error("Cannot send command - MQTT client not connected");
+            throw new Exception("MQTT client not connected");
+        }
+
+        try {
+            Map<String, String> command = new HashMap<>();
+            command.put("command", turnOn ? "led_on" : "led_off");
+
+            String jsonCommand = objectMapper.writeValueAsString(command);
+            log.info("Sending command to Arduino: {}", jsonCommand);
+
+            MqttMessage message = new MqttMessage(jsonCommand.getBytes());
+            message.setQos(1);
+            mqttClient.publish(arduinoTopic, message);
+
+            log.info("Command sent successfully");
+        } catch (MqttException e) {
+            log.error("MQTT error while sending command: {}", e.getMessage(), e);
+            throw new Exception("Failed to send MQTT message: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error sending command: {}", e.getMessage(), e);
+            throw new Exception("Failed to send command: " + e.getMessage());
+        }
+    }
+
+    public boolean isConnected() {
+        return mqttClient != null && mqttClient.isConnected();
+    }
+
+    public void sendArduinoCommand(String commandName, Map<String, Object> params) throws Exception {
+        if (!isConnected()) {
+            log.error("Cannot send command - MQTT client not connected");
+            throw new Exception("MQTT client not connected");
+        }
+
+        try {
+            Map<String, Object> commandData = new HashMap<>();
+            commandData.put("command", commandName);
+
+            if (params != null && !params.isEmpty()) {
+                commandData.putAll(params);
+            }
+
+            String jsonCommand = objectMapper.writeValueAsString(commandData);
+            log.info("Sending command to Arduino: {}", jsonCommand);
+
+            MqttMessage message = new MqttMessage(jsonCommand.getBytes());
+            message.setQos(1);
+            mqttClient.publish(arduinoTopic, message);
+
+            log.info("Command sent successfully");
+        } catch (MqttException e) {
+            log.error("MQTT error while sending command: {}", e.getMessage(), e);
+            throw new Exception("Failed to send MQTT message: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error sending command: {}", e.getMessage(), e);
+            throw new Exception("Failed to send command: " + e.getMessage());
         }
     }
 }

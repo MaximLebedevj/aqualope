@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("api/aquarium/**").permitAll()
                         .requestMatchers("api/aqua-start-monitoring").permitAll()
                         .requestMatchers("api/aqua-stop-monitoring").permitAll()
+                        .requestMatchers("/arduino/**").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .anyRequest().authenticated()
                 )
