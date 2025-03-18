@@ -9,14 +9,18 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 // MQTT
 #define MQTT_BROKER "test.mosquitto.org"
 #define MQTT_PORT 1883
-#define MQTT_TOPIC "topic/water_quality"
+#define MQTT_TOPIC_PUBLISH "topic/water_quality"
+#define MQTT_TOPIC_SUBSCRIBE "topic/arduino_control"
 #define CLIENT_ID_PREFIX "ArduinoClient-"
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 96
 #define RECONNECT_DELAY 5000
 
 // MQTT publish
 #define SEND_INTERVAL 5000
-#define JSON_DOC_SIZE 128
+#define JSON_DOC_SIZE 96
+
+// LED Pin
+#define LED_PIN LED_BUILTIN
 
 struct SensorData {
     float temperature;
@@ -37,12 +41,16 @@ void readSensors(struct SensorData *data);
 bool sendSensorData(const struct SensorData *data);
 float roundFloat(float value, int decimals);
 void generateRandomSensorData(struct SensorData *data);
+void callback(char* topic, byte* payload, unsigned int length);
 
 EthernetClient ethClient;
 PubSubClient mqttClient(ethClient);
 unsigned long previousMillis = 0;
 
 void setup() {
+
+    pinMode(LED_PIN, OUTPUT);
+
     Serial.begin(9600);
     while (!Serial) {;}
 
@@ -53,17 +61,17 @@ void setup() {
 
 void loop() {
     Ethernet.maintain();
-  
+
     if (!mqttClient.connected()) {
         connectToMQTT();
     }
-  
+
     mqttClient.loop();
-  
+
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= SEND_INTERVAL) {
         previousMillis = currentMillis;
-    
+
         struct SensorData data;
         readSensors(&data);
         sendSensorData(&data);
@@ -80,16 +88,25 @@ void setupEthernet(void) {
 
 void setupMQTT(void) {
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+    mqttClient.setCallback(callback);
 }
 
 bool connectToMQTT(void) {
     Serial.println("Connecting to MQTT broker...");
-  
+
     String clientId = CLIENT_ID_PREFIX;
     clientId += String(random(0xffff), HEX);
-  
+
     if (mqttClient.connect(clientId.c_str())) {
         Serial.println("MQTT connected");
+
+        if (mqttClient.subscribe(MQTT_TOPIC_SUBSCRIBE)) {
+            Serial.print("Subscribed to ");
+            Serial.println(MQTT_TOPIC_SUBSCRIBE);
+        } else {
+            Serial.println("Failed to subscribe");
+        }
+
         return true;
     } else {
         Serial.print("Failed, rc=");
@@ -97,6 +114,50 @@ bool connectToMQTT(void) {
         Serial.println(" Retrying in 5 seconds");
         delay(RECONNECT_DELAY);
         return false;
+    }
+}
+
+bool ledState = false;
+
+void callback(char* topic, byte* payload, unsigned int length) {
+    Serial.print("Message arrived [");
+    Serial.print(topic);
+    Serial.print("] ");
+
+    char message[length + 1];
+    for (unsigned int i = 0; i < length; i++) {
+        message[i] = (char)payload[i];
+        Serial.print((char)payload[i]);
+    }
+    message[length] = '\0';
+    Serial.println();
+
+    StaticJsonDocument<JSON_DOC_SIZE> doc;
+    DeserializationError error = deserializeJson(doc, message);
+
+    if (error) {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+        return;
+    }
+
+    if (doc.containsKey("command")) {
+        const char* command = doc["command"];
+
+        if (strcmp(command, "led_on") == 0) {
+            if (!ledState) {
+                digitalWrite(LED_PIN, HIGH);
+                ledState = true;
+                Serial.println("LED turned ON");
+            }
+        }
+        else if (strcmp(command, "led_off") == 0) {
+            if (ledState) {
+                digitalWrite(LED_PIN, LOW);
+                ledState = false;
+                Serial.println("LED turned OFF");
+            }
+        }
     }
 }
 
@@ -118,7 +179,7 @@ void generateRandomSensorData(struct SensorData *data) {
 
 bool sendSensorData(const struct SensorData *data) {
     StaticJsonDocument<JSON_DOC_SIZE> doc;
-  
+
     doc["te"] = data->temperature;
     doc["ox"] = data->oxygen;
     doc["p"] = data->pressure;
@@ -128,16 +189,16 @@ bool sendSensorData(const struct SensorData *data) {
     doc["tu"] = data->turbidity;
     doc["a"] = data->ammonia;
     doc["n"] = data->nitrate;
-  
+
     char buffer[BUFFER_SIZE];
     size_t n = serializeJson(doc, buffer);
-  
+
     Serial.print("n = ");
     Serial.println(n);
     Serial.print("Publishing: ");
     Serial.println(buffer);
-  
-    if (mqttClient.publish(MQTT_TOPIC, buffer, n)) {
+
+    if (mqttClient.publish(MQTT_TOPIC_PUBLISH, buffer, n)) {
         Serial.println("Publish success");
         return true;
     } else {
