@@ -60,18 +60,6 @@ public class MonitoringController {
         }
     }
 
-    @PostMapping("/test-websocket")
-    public ResponseEntity<String> testWebSocket() {
-        log.info("Received request to send test WebSocket message");
-        try {
-            mqttService.sendTestMessage();
-            return ResponseEntity.ok("Test message sent via WebSocket");
-        } catch (Exception e) {
-            log.error("Failed to send test message: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body("Failed to send test message: " + e.getMessage());
-        }
-    }
-
     @GetMapping("/status")
     public ResponseEntity<String> getStatus() {
         try {

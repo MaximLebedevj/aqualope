@@ -2,13 +2,13 @@ package com.aqualope.service;
 
 import com.aqualope.model.Aquarium;
 import com.aqualope.model.WaterQuality;
+import com.aqualope.websocket.WaterQualityWebSocketHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -43,7 +43,7 @@ public class MqttServiceImpl {
     private Long currentAquariumId;
 
     @Autowired
-    private SimpMessagingTemplate simpMessagingTemplate;
+    private WaterQualityWebSocketHandler websocketHandler;
 
     @Autowired
     private WaterQualityServiceImpl waterQualityServiceImpl;
@@ -119,11 +119,10 @@ public class MqttServiceImpl {
 
             if (isMonitoring.get() || isAquaMonitoring.get()) {
                 try {
-
                     WaterQuality savedData = waterQualityServiceImpl.save(data);
                     data.setId(savedData.getId());
 
-                    simpMessagingTemplate.convertAndSend("/topic/water-quality", data);
+                    websocketHandler.sendWaterQualityData(data);
                     log.info("Data sent to WebSocket clients");
                 } catch (Exception e) {
                     log.error("Failed to send data via WebSocket: {}", e.getMessage(), e);
@@ -173,7 +172,7 @@ public class MqttServiceImpl {
                             parameterData.put("timestamp", data.getTimestamp());
                             parameterData.put("isAlert", parameterValue < lowerThreshold || parameterValue > upperThreshold);
 
-                            simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
+                            websocketHandler.sendAquariumParameterData(parameterData);
                             log.info("Parameter data sent to WebSocket clients: {}", parameterData);
                         }
                     }
@@ -302,47 +301,6 @@ public class MqttServiceImpl {
             }
         } catch (MqttException e) {
             log.error("Filed to disconnect from broker: {}", e.getMessage());
-        }
-    }
-
-    public void sendTestMessage() {
-        try {
-            WaterQuality testData = new WaterQuality(
-                    25.5, 85.0, 7.2, 250.0, 0.5, 120.0, 5.0, 0.02, 0.01, LocalDateTime.now()
-            );
-
-            log.info("Sending test data via WebSocket: {}", testData);
-            simpMessagingTemplate.convertAndSend("/topic/water-quality", testData);
-            log.info("Test data sent successfully");
-
-            waterQualityServiceImpl.save(testData);
-            log.info("Test data saved to database");
-
-            if (isAquaMonitoring.get() && currentAquariumId != null) {
-                Optional<Aquarium> aquariumOpt = aquariumService.getAquariumById(currentAquariumId);
-                if (aquariumOpt.isPresent()) {
-                    Aquarium aquarium = aquariumOpt.get();
-                    for (Aquarium.Parameter parameter : aquarium.getParameters()) {
-                        String paramName = parameter.getName();
-                        Double parameterValue = getParameterValue(testData, paramName);
-
-                        if (parameterValue != null) {
-                            Map<String, Object> parameterData = new HashMap<>();
-                            parameterData.put("aquariumId", aquarium.getId());
-                            parameterData.put("parameter", paramName);
-                            parameterData.put("value", parameterValue);
-                            parameterData.put("lowerThreshold", parameter.getLowerThreshold());
-                            parameterData.put("upperThreshold", parameter.getUpperThreshold());
-                            parameterData.put("timestamp", testData.getTimestamp());
-
-                            simpMessagingTemplate.convertAndSend("/topic/aquarium-parameter", parameterData);
-                            log.info("Test parameter data sent to WebSocket clients: {}", parameterData);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to send test message: {}", e.getMessage(), e);
         }
     }
 
