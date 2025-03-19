@@ -7,7 +7,7 @@
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // MQTT
-#define MQTT_BROKER "test.mosquitto.org"
+#define MQTT_BROKER "147.45.126.9"
 #define MQTT_PORT 1883
 #define MQTT_TOPIC_PUBLISH "topic/water_quality"
 #define MQTT_TOPIC_SUBSCRIBE "topic/arduino_control"
