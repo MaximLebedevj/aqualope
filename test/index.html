@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг качества воды</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 4px;
+        }
+        .status-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .disconnected {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #connectButton {
+            background-color: #5cb85c;
+            color: white;
+        }
+        #disconnectButton {
+            background-color: #d9534f;
+            color: white;
+        }
+        .data-section {
+            margin-top: 20px;
+        }
+        .data-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .data-card h2 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Aqualope WebSockets</h1>
+        </header>
+
+        <div class="status-bar">
+            <div>
+                Status: <span id="status" class="status-indicator disconnected">Disconnected</span>
+            </div>
+            <div class="button-group">
+                <button id="connectButton">Connect</button>
+                <button id="disconnectButton">Disconnect</button>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="data-card">
+                <h2>Water Quality JSON</h2>
+                <pre id="waterQualityData">Wating for data...</pre>
+            </div>
+
+            <div class="data-card">
+                <h2>Telegram JSON</h2>
+                <pre id="parametersData">Wating for data...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+    class WaterQualityWebSocketClient {
+        constructor(serverUrl) {
+            this.serverUrl = serverUrl;
+            this.socket = null;
+            this.connected = false;
+            this.eventHandlers = {
+                'water-quality': [],
+                'aquarium-parameter': [],
+                'connect': [],
+                'disconnect': [],
+                'error': []
+            };
+        }
+
+        connect() {
+            try {
+                this.socket = new WebSocket(this.serverUrl);
+
+                this.socket.onopen = () => {
+                    console.log("WebSocket connection established");
+                    this.connected = true;
+                    this._triggerEvent('connect');
+                };
+
+                this.socket.onclose = (event) => {
+                    console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
+                    this.connected = false;
+                    this._triggerEvent('disconnect', event);
+                };
+
+                this.socket.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                    this._triggerEvent('error', error);
+                };
+
+                this.socket.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        const { type, data } = message;
+
+                        if (type && this.eventHandlers[type]) {
+                            this._triggerEvent(type, data);
+                        }
+                    } catch (e) {
+                        console.error("Error parsing message:", e);
+                    }
+                };
+
+            } catch (e) {
+                console.error("Error connecting to WebSocket:", e);
+            }
+        }
+
+        disconnect() {
+            if (this.socket && this.connected) {
+                this.socket.close();
+            }
+        }
+
+        on(eventName, callback) {
+            if (this.eventHandlers[eventName]) {
+                this.eventHandlers[eventName].push(callback);
+            }
+            return this;
+        }
+
+        off(eventName, callback) {
+            if (this.eventHandlers[eventName]) {
+                this.eventHandlers[eventName] = this.eventHandlers[eventName]
+                    .filter(handler => handler !== callback);
+            }
+            return this;
+        }
+
+        _triggerEvent(eventName, data) {
+            if (this.eventHandlers[eventName]) {
+                this.eventHandlers[eventName].forEach(callback => {
+                    try {
+                        callback(data);
+                    } catch (e) {
+                        console.error(`Error in ${eventName} handler:`, e);
+                    }
+                });
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const wsClient = new WaterQualityWebSocketClient('ws://localhost:8088/ws/water-quality');
+
+        const parametersData = {};
+
+        wsClient.on('connect', () => {
+            console.log('Connected to server');
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = 'Connected';
+            statusElement.classList.remove('disconnected');
+            statusElement.classList.add('connected');
+        });
+
+        wsClient.on('disconnect', () => {
+            console.log('Disconnected from server');
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = 'Disconnected';
+            statusElement.classList.remove('connected');
+            statusElement.classList.add('disconnected');
+        });
+
+        wsClient.on('water-quality', (data) => {
+            console.log('Received water quality data:', data);
+            updateWaterQualityUI(data);
+        });
+
+        wsClient.on('aquarium-parameter', (data) => {
+            console.log('Received aquarium parameter data:', data);
+            if (data.parameter) {
+                parametersData[data.parameter] = data;
+            }
+            updateParametersUI(parametersData);
+        });
+
+        document.getElementById('connectButton').addEventListener('click', () => {
+            wsClient.connect();
+        });
+
+        document.getElementById('disconnectButton').addEventListener('click', () => {
+            wsClient.disconnect();
+        });
+
+        function updateWaterQualityUI(data) {
+            const container = document.getElementById('waterQualityData');
+            container.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function updateParametersUI(parametersData) {
+            const container = document.getElementById('parametersData');
+            container.textContent = JSON.stringify(parametersData, null, 2);
+        }
+    });
+    </script>
+</body>
+</html>
