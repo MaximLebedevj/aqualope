@@ -1,27 +1,30 @@
 
 *******************************************
 
-http://127.0.0.1:8080/login
-http://127.0.0.1:8080/register
-http://127.0.0.1:8080/user/info
+http://127.0.0.1:8088/login
+http://127.0.0.1:8088/register
+http://127.0.0.1:8088/user/info
 
 
-POST     http://127.0.0.1:8080/api/start-monitoring
-POST     http://127.0.0.1:8080/api/stop-monitoring
-GET      http://127.0.0.1:8080/api/status
-GET      http://127.0.0.1:8080/api/24hour
-GET      http://127.0.0.1:8080/api/{id}/water-quality
+POST     http://127.0.0.1:8088/api/start-monitoring
+POST     http://127.0.0.1:8088/api/stop-monitoring
+GET      http://127.0.0.1:8088/api/status
+GET      http://127.0.0.1:8088/api/24hour
+GET      http://127.0.0.1:8088/api/{id}/water-quality
 
-POST/GET http://127.0.0.1:8080/api/aquarium
-GET      http://127.0.0.1:8080/api/aquarium/{id}
-PUT      http://127.0.0.1:8080/api/aquarium/{id}/update
-GET      http://127.0.0.1:8080/api/aquarium/{id}/params
+POST/GET http://127.0.0.1:8088/api/aquarium
+GET      http://127.0.0.1:8088/api/aquarium/{id}
+PUT      http://127.0.0.1:8088/api/aquarium/{id}/update
+GET      http://127.0.0.1:8088/api/aquarium/{id}/params
 
-POST     http://localhost:8080/api/aqua-start-monitoring
-POST     http://localhost:8080/api/aqua-stop-monitoring
+POST     http://localhost:8088/api/aqua-start-monitoring
+POST     http://localhost:8088/api/aqua-stop-monitoring
 
-GET      http://localhost:8080/arduino/led-on
+GET      http://localhost:8088/arduino/led-on
 GET      http://localhost:8088/arduino/led-off
+
+POST     http://localhost:8088/stand/on
+POST     http://localhost:8088/stand/off
 
 *******************************************
 
