@@ -163,17 +163,22 @@ public class MqttServiceImpl {
                                 );
                             }
 
-                            Map<String, Object> parameterData = new HashMap<>();
-                            parameterData.put("aquariumId", aquarium.getId());
-                            parameterData.put("parameter", paramName);
-                            parameterData.put("value", parameterValue);
-                            parameterData.put("lowerThreshold", lowerThreshold);
-                            parameterData.put("upperThreshold", upperThreshold);
-                            parameterData.put("timestamp", data.getTimestamp());
-                            parameterData.put("isAlert", parameterValue < lowerThreshold || parameterValue > upperThreshold);
 
-                            websocketHandler.sendAquariumParameterData(parameterData);
-                            log.info("Parameter data sent to WebSocket clients: {}", parameterData);
+                            /*
+                            Telegram WS data
+                             */
+
+//                            Map<String, Object> parameterData = new HashMap<>();
+//                            parameterData.put("aquariumId", aquarium.getId());
+//                            parameterData.put("parameter", paramName);
+//                            parameterData.put("value", parameterValue);
+//                            parameterData.put("lowerThreshold", lowerThreshold);
+//                            parameterData.put("upperThreshold", upperThreshold);
+//                            parameterData.put("timestamp", data.getTimestamp());
+//                            parameterData.put("isAlert", parameterValue < lowerThreshold || parameterValue > upperThreshold);
+
+                            //websocketHandler.sendAquariumParameterData(parameterData);
+                            //log.info("Parameter data sent to WebSocket clients: {}", parameterData);
                         }
                     }
                 }
