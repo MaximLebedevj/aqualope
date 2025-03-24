@@ -34,4 +34,4 @@ while True:
     payload = json.dumps(sensor_data)
     print("Publishing:", payload)
     client.publish(topic, payload)
-    time.sleep(1)
+    time.sleep(7)
